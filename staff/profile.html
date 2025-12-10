@@ -169,10 +169,19 @@
                 })
                 .then(response => {
                     localStorage.setItem('user', JSON.stringify(response.data.user));
-                    alert('Profile updated successfully');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Profile updated successfully',
+                        timer: 1800,
+                        showConfirmButton: false
+                    });
                 })
                 .catch(error => {
-                    alert('Failed to update profile: ' + (error.response?.data?.message || error.message));
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to update profile',
+                        text: (error.response?.data?.message || error.message || 'An error occurred')
+                    });
                 });
             });
         });
