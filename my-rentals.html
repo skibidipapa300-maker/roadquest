@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Rentals - RoadQuest Rentals</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">RoadQuest Rentals</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="cars.html">Cars</a></li>
+                    <li class="nav-item active"><a class="nav-link" href="my-rentals.html">My Rentals</a></li>
+                    <li class="nav-item d-none" id="nav-profile"><a class="nav-link" href="profile.html">Profile</a></li>
+                    <li class="nav-item" id="auth-login"><a class="nav-link" href="login.html">Login</a></li>
+                    <li class="nav-item" id="auth-register"><a class="nav-link" href="register.html">Register</a></li>
+                    <li class="nav-item d-none" id="auth-logout"><a class="nav-link" href="#">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <h2 class="mb-4">My Rentals</h2>
+
+        <!-- Search and Filter -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="my-rentals-search-form" class="row g-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="my-rentals-search-input" placeholder="Search car make, model...">
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="my-rentals-status-filter">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rented">Rented</option>
+                            <option value="Pending Return">Pending Return</option>
+                            <option value="returned">Returned</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="denied">Denied</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-responsive d-none d-md-block">
+            <table class="table table-striped" id="my-rentals-table">
+                <thead>
+                    <tr>
+                        <th>Car</th>
+                        <th>Pickup Date</th>
+                        <th>Return Date</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div id="my-rentals-cards" class="d-md-none">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-3 mt-auto">
+        <div class="container">
+            <p>&copy; 2025 RoadQuest Rentals. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        $(document).ready(function() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            loadMyRentals(user.user_id);
+
+            $('#my-rentals-search-form').on('submit', function(e) {
+                e.preventDefault();
+                const search = $('#my-rentals-search-input').val();
+                const status = $('#my-rentals-status-filter').val();
+                loadMyRentals(user.user_id, { search, status });
+            });
+        });
+
+        function loadMyRentals(userId, params = {}) {
+            let url = `${API_URL}/rentals?user_id=${userId}`;
+            
+            // Append search parameters manually since API might not support complex nested filtering for customer view directly or to keep consistent with other views
+            // But let's check if backend supports it. The backend RentalController@index supports 'search' and 'status'.
+            // 'search' searches user or car. 'status' searches rental_status.
+            
+            if (params.search) url += `&search=${params.search}`;
+            if (params.status) url += `&status=${params.status}`;
+
+            const tbody = $('#my-rentals-table tbody');
+            // Show spinner
+             tbody.html(`
+                <tr>
+                    <td colspan="6" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </td>
+                </tr>
+            `);
+
+            axios.get(url)
+                .then(response => {
+                    const tbody = $('#my-rentals-table tbody');
+                    const cardsContainer = $('#my-rentals-cards');
+                    
+                    tbody.empty();
+                    cardsContainer.empty();
+                    
+                    if (response.data.length === 0) {
+                        tbody.html('<tr><td colspan="6" class="text-center">No rentals found.</td></tr>');
+                        cardsContainer.html('<div class="text-center p-4"><p>No rentals found.</p></div>');
+                        return;
+                    }
+
+                    // Custom Sort Order: pending, approved, rented, Pending Return, returned, completed, cancelled, denied
+                    const statusOrder = {
+                        'pending': 1,
+                        'approved': 2,
+                        'rented': 3, 
+                        'active': 3,
+                        'Pending Return': 4,
+                        'returned': 5,
+                        'completed': 6,
+                        'cancelled': 7,
+                        'denied': 8
+                    };
+
+                    response.data.sort((a, b) => {
+                        return (statusOrder[a.rental_status] || 99) - (statusOrder[b.rental_status] || 99);
+                    });
+
+                    response.data.forEach(rental => {
+                        let actionBtn = '';
+                        // Customer State Machine
+                        if (rental.rental_status === 'pending') {
+                            actionBtn = `<button class="btn btn-sm btn-danger" onclick="updateRentalStatus(${rental.rental_id}, 'cancelled')">Cancel</button>`;
+                        } else if (rental.rental_status === 'approved') {
+                            actionBtn = `
+                                <button class="btn btn-sm btn-success" onclick="updateRentalStatus(${rental.rental_id}, 'rented')">Start Rental</button>
+                                <button class="btn btn-sm btn-danger" onclick="updateRentalStatus(${rental.rental_id}, 'cancelled')">Cancel</button>
+                            `;
+                        } else if (rental.rental_status === 'rented' || rental.rental_status === 'active') {
+                            actionBtn = `<button class="btn btn-sm btn-warning" onclick="updateRentalStatus(${rental.rental_id}, 'Pending Return')">Return Car</button>`;
+                        }
+
+                        const carName = rental.car ? `${rental.car.make} ${rental.car.model}` : 'Unknown Car';
+                        const statusColor = getStatusColor(rental.rental_status);
+                        
+                        // Desktop Table Row
+                        tbody.append(`
+                            <tr>
+                                <td>${carName}</td>
+                                <td>${new Date(rental.pickup_date).toLocaleDateString()}</td>
+                                <td>${new Date(rental.return_date).toLocaleDateString()}</td>
+                                <td>₱${rental.total_price}</td>
+                                <td><span class="badge bg-${statusColor}">${rental.rental_status}</span></td>
+                                <td>${actionBtn}</td>
+                            </tr>
+                        `);
+
+                        // Mobile Card View
+                        cardsContainer.append(`
+                            <div class="card mb-3 shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title">${carName}</h5>
+                                    <hr>
+                                    <div class="mb-2">
+                                        <strong>Pickup Date:</strong><br>
+                                        <span>${new Date(rental.pickup_date).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Return Date:</strong><br>
+                                        <span>${new Date(rental.return_date).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Total Price:</strong><br>
+                                        <span>₱${rental.total_price}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Status:</strong><br>
+                                        <span class="badge bg-${statusColor}">${rental.rental_status}</span>
+                                    </div>
+                                    ${actionBtn ? `<div class="d-grid gap-2">${actionBtn}</div>` : ''}
+                                </div>
+                            </div>
+                        `);
+                    });
+                })
+                .catch(error => {
+                    $('#my-rentals-table tbody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load rentals.</td></tr>');
+                    $('#my-rentals-cards').html('<div class="text-center p-4 text-danger"><p>Failed to load rentals.</p></div>');
+                });
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'pending': return 'warning';
+                case 'approved': return 'info';
+                case 'active': 
+                case 'rented': return 'primary';
+                case 'Pending Return': return 'warning text-dark';
+                case 'returned': return 'info';
+                case 'completed': return 'success';
+                case 'cancelled': 
+                case 'denied': return 'danger';
+                default: return 'secondary';
+            }
+        }
+
+        function updateRentalStatus(id, status) {
+            const msg = status === 'rented' ? 'start this rental' : 
+                       status === 'Pending Return' ? 'return this car' : 
+                       status === 'cancelled' ? 'cancel this booking' : 'update status';
+                       
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `Do you want to ${msg}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, do it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    axios.put(`${API_URL}/rentals/${id}`, { rental_status: status })
+                        .then(() => {
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: "top-end",
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                didOpen: (toast) => {
+                                    toast.onmouseenter = Swal.stopTimer;
+                                    toast.onmouseleave = Swal.resumeTimer;
+                                }
+                            });
+                            Toast.fire({
+                                icon: "success",
+                                title: "Status updated successfully"
+                            });
+                            const user = JSON.parse(localStorage.getItem('user'));
+                            loadMyRentals(user.user_id);
+                        })
+                        .catch(error => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed to update status',
+                                text: error.response?.data?.message || error.message
+                            });
+                        });
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Profile - RoadQuest Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">RoadQuest Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="cars.html">Manage Cars</a></li>
+                    <li class="nav-item"><a class="nav-link" href="users.html">Manage Users</a></li>
+                    <li class="nav-item"><a class="nav-link" href="history.html">Rental History</a></li>
+                    <li class="nav-item active"><a class="nav-link" href="profile.html">Profile</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="admin-logout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Edit Profile</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="profile-loading" class="text-center my-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <form id="profile-form" class="d-none">
+                            <div class="text-center mb-4">
+                                <img id="profile-image-preview" src="../images/default-profile.svg" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;" alt="Profile Picture">
+                                <div class="mt-3">
+                                    <label for="image" class="btn btn-sm btn-outline-secondary">Change Photo</label>
+                                    <input type="file" id="image" class="d-none" accept="image/*">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" class="form-control" id="username" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" readonly>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="text" class="form-control" id="phone_number">
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control" id="address" rows="3"></textarea>
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">New Password (leave blank to keep current)</label>
+                                    <input type="password" class="form-control" id="password">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">Update Profile</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/admin.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Fetch latest user data
+            axios.get(`${API_URL}/user`)
+                .then(response => {
+                    const user = response.data;
+                    // Update local storage
+                    localStorage.setItem('user', JSON.stringify(user));
+                    populateForm(user);
+                })
+                .catch(error => {
+                    console.error('Failed to fetch user data', error);
+                    // Fallback to local storage
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    if(user) {
+                        populateForm(user);
+                    } else {
+                        alert('Failed to load profile data.');
+                    }
+                })
+                .finally(() => {
+                    $('#profile-loading').addClass('d-none');
+                    $('#profile-form').removeClass('d-none');
+                });
+
+            function populateForm(user) {
+                $('#username').val(user.username);
+                // Split full_name into first_name and last_name
+                const nameParts = (user.full_name || '').trim().split(' ');
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ') || '';
+                $('#first_name').val(firstName);
+                $('#last_name').val(lastName);
+                $('#email').val(user.email);
+                $('#phone_number').val(user.phone_number);
+                $('#address').val(user.address);
+                if(user.image) {
+                    $('#profile-image-preview').attr('src', user.image);
+                }
+            }
+
+            $('#image').change(function(){
+                const file = this.files[0];
+                if(file){
+                    let reader = new FileReader();
+                    reader.onload = function(event){
+                        $('#profile-image-preview').attr('src', event.target.result);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            $('#profile-form').on('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData();
+                formData.append('username', $('#username').val());
+                // Combine first_name and last_name into full_name
+                const fullName = ($('#first_name').val().trim() + ' ' + $('#last_name').val().trim()).trim();
+                formData.append('full_name', fullName);
+                formData.append('email', $('#email').val());
+                formData.append('phone_number', $('#phone_number').val());
+                formData.append('address', $('#address').val());
+                
+                if($('#password').val()) {
+                    formData.append('password', $('#password').val());
+                }
+
+                const imageFile = $('#image')[0].files[0];
+                if(imageFile) {
+                    formData.append('image', imageFile);
+                }
+
+                axios.post(`${API_URL}/profile`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                .then(response => {
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    alert('Profile updated successfully');
+                })
+                .catch(error => {
+                    alert('Failed to update profile: ' + (error.response?.data?.message || error.message));
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
