@@ -397,8 +397,14 @@ $(document).ready(function() {
         e.preventDefault();
         const user = JSON.parse(localStorage.getItem('user'));
         if (!user) {
-            alert('Please login to book a car.');
-            window.location.href = 'login.html';
+            Swal.fire({
+                icon: 'warning',
+                title: 'Login Required',
+                text: 'Please login to book a car.',
+                confirmButtonText: 'Go to Login'
+            }).then(() => {
+                window.location.href = 'login.html';
+            });
             return;
         }
 
@@ -431,11 +437,35 @@ $(document).ready(function() {
             })
             .catch(error => {
                 if (error.response?.status === 401) {
-                     alert('Session expired. Please login again.');
-                     finalizeLogout();
-                     return;
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Session Expired',
+                        text: 'Please login again.',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        finalizeLogout();
+                    });
+                    return;
                 }
-                alert('Booking failed: ' + (error.response?.data?.message || error.message));
+                
+                const errorMessage = error.response?.data?.message || error.message;
+                
+                // Check if it's a duplicate booking error
+                if (errorMessage.includes('already booked this car')) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Already Booked',
+                        text: errorMessage,
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Booking Failed',
+                        text: errorMessage,
+                        confirmButtonText: 'OK'
+                    });
+                }
             });
     });
 });
