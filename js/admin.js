@@ -193,6 +193,7 @@ $(document).ready(function() {
         $('#user-form').on('submit', function(e) {
             e.preventDefault();
             const userId = $('#user_id').val();
+            const currentUser = JSON.parse(localStorage.getItem('user'));
             // Combine first_name and last_name into full_name
             const fullName = ($('#first_name').val().trim() + ' ' + $('#last_name').val().trim()).trim();
             const formData = {
@@ -206,6 +207,12 @@ $(document).ready(function() {
 
             // Remove password if empty (for updates)
             if (!formData.password) delete formData.password;
+            
+            // Prevent admin from changing their own role
+            if (userId && currentUser && currentUser.user_id == userId && currentUser.role === 'admin') {
+                // Don't send role if admin is editing themselves
+                delete formData.role;
+            }
 
             if (userId) {
                 // Update User
@@ -237,7 +244,8 @@ $(document).ready(function() {
                         });
                     });
             } else {
-                // Create User
+                // Create User - remove is_verified since it's set automatically to true
+                delete formData.is_verified;
                 axios.post(`${API_URL}/admin/users`, formData)
                     .then(() => {
                         $('#userModal').modal('hide');
@@ -747,6 +755,8 @@ window.deleteCar = function(id) {
 window.editUser = function(id) {
     axios.get(`${API_URL}/admin/users/${id}`).then(res => {
         const user = res.data;
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        
         $('#user_id').val(user.user_id);
         $('#username').val(user.username);
         // Split full_name into first_name and last_name
@@ -760,6 +770,16 @@ window.editUser = function(id) {
         $('#role').val(user.role);
         $('#is_verified').val(user.is_verified ? 1 : 0);
         
+        // Disable role field if admin is editing their own account
+        if (currentUser && currentUser.user_id == user.user_id && currentUser.role === 'admin') {
+            $('#role').prop('disabled', true);
+        } else {
+            $('#role').prop('disabled', false);
+        }
+        
+        // Show verified field when editing
+        $('#is_verified').closest('.mb-3').removeClass('d-none');
+        
         $('.modal-title').text('Edit User');
         $('#userModal').modal('show');
     });
@@ -768,7 +788,11 @@ window.editUser = function(id) {
 window.openAddUserModal = function() {
     $('#user_id').val('');
     $('#user-form')[0].reset();
+    // Set verified to true by default and hide the field
+    $('#is_verified').val(1);
+    $('#is_verified').closest('.mb-3').addClass('d-none');
     $('.modal-title').text('Add New User');
+    $('#role').prop('disabled', false); // Ensure role is enabled for new users
     $('#userModal').modal('show');
 };
 
