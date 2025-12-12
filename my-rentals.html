@@ -182,10 +182,7 @@
                         if (rental.rental_status === 'pending') {
                             actionBtn = `<button class="btn btn-sm btn-danger" onclick="updateRentalStatus(${rental.rental_id}, 'cancelled')">Cancel</button>`;
                         } else if (rental.rental_status === 'approved') {
-                            actionBtn = `
-                                <button class="btn btn-sm btn-success" onclick="updateRentalStatus(${rental.rental_id}, 'rented')">Start Rental</button>
-                                <button class="btn btn-sm btn-danger" onclick="updateRentalStatus(${rental.rental_id}, 'cancelled')">Cancel</button>
-                            `;
+                            actionBtn = `<button class="btn btn-sm btn-success" onclick="updateRentalStatus(${rental.rental_id}, 'rented')">Start Rental</button>`;
                         } else if (rental.rental_status === 'rented' || rental.rental_status === 'active') {
                             actionBtn = `<button class="btn btn-sm btn-warning" onclick="updateRentalStatus(${rental.rental_id}, 'Pending Return')">Return Car</button>`;
                         }
