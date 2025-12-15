@@ -369,8 +369,20 @@ $(document).ready(function() {
     $('#pickup-date').on('change', function() {
         const pickupVal = $(this).val();
         if (pickupVal) {
-            // Set return date min to be same as pickup or later
-            $('#return-date').attr('min', pickupVal);
+            // Require return date to be at least the next day
+            const pickupDate = new Date(pickupVal);
+            const nextDay = new Date(pickupDate);
+            nextDay.setDate(pickupDate.getDate() + 1);
+            const offset = nextDay.getTimezoneOffset();
+            const adjusted = new Date(nextDay.getTime() - (offset * 60 * 1000));
+            const minReturn = adjusted.toISOString().split('T')[0];
+            $('#return-date').attr('min', minReturn);
+
+            // Clear invalid return selection
+            const currentReturn = $('#return-date').val();
+            if (currentReturn && new Date(currentReturn) <= pickupDate) {
+                $('#return-date').val('');
+            }
         }
         calculatePrice();
     });
@@ -408,11 +420,34 @@ $(document).ready(function() {
             return;
         }
 
+        const pickupDate = $('#pickup-date').val();
+        const returnDate = $('#return-date').val();
+
+        if (!pickupDate || !returnDate) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Dates required',
+                text: 'Please select both pickup and return dates.'
+            });
+            return;
+        }
+
+        const pickup = new Date(pickupDate);
+        const dropoff = new Date(returnDate);
+        if (dropoff <= pickup) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Invalid dates',
+                text: 'Return date must be after pickup date.'
+            });
+            return;
+        }
+
         const data = {
             user_id: user.user_id,
             car_id: $('#booking-car-id').val(),
-            pickup_date: $('#pickup-date').val(),
-            return_date: $('#return-date').val()
+            pickup_date: pickupDate,
+            return_date: returnDate
         };
 
         axios.post(`${API_URL}/rentals`, data)
@@ -450,11 +485,11 @@ $(document).ready(function() {
                 
                 const errorMessage = error.response?.data?.message || error.message;
                 
-                // Check if it's a duplicate booking error
-                if (errorMessage.includes('already booked this car')) {
+                // Check if it's a duplicate booking error (overlapping dates)
+                if (errorMessage.includes('already booked this car') || errorMessage.includes('overlapping dates')) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Already Booked',
+                        title: 'Booking Conflict',
                         text: errorMessage,
                         confirmButtonText: 'OK'
                     });
