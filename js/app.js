@@ -369,20 +369,8 @@ $(document).ready(function() {
     $('#pickup-date').on('change', function() {
         const pickupVal = $(this).val();
         if (pickupVal) {
-            // Require return date to be at least the next day
-            const pickupDate = new Date(pickupVal);
-            const nextDay = new Date(pickupDate);
-            nextDay.setDate(pickupDate.getDate() + 1);
-            const offset = nextDay.getTimezoneOffset();
-            const adjusted = new Date(nextDay.getTime() - (offset * 60 * 1000));
-            const minReturn = adjusted.toISOString().split('T')[0];
-            $('#return-date').attr('min', minReturn);
-
-            // Clear invalid return selection
-            const currentReturn = $('#return-date').val();
-            if (currentReturn && new Date(currentReturn) <= pickupDate) {
-                $('#return-date').val('');
-            }
+            // Allow same-day selection but validate on submit
+            $('#return-date').attr('min', pickupVal);
         }
         calculatePrice();
     });
