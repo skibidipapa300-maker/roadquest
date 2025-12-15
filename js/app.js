@@ -471,7 +471,9 @@ $(document).ready(function() {
                     return;
                 }
                 
-                const errorMessage = error.response?.data?.message || error.message;
+                const status = error.response?.status;
+                const backendMessage = error.response?.data?.message;
+                const errorMessage = backendMessage || error.message;
                 
                 // Check if it's a duplicate booking error (overlapping dates)
                 if (errorMessage.includes('already booked this car') || errorMessage.includes('overlapping dates')) {
@@ -481,11 +483,18 @@ $(document).ready(function() {
                         text: errorMessage,
                         confirmButtonText: 'OK'
                     });
+                } else if (status === 422) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Booking Failed',
+                        text: backendMessage || 'Please check your booking details and try again.',
+                        confirmButtonText: 'OK'
+                    });
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Booking Failed',
-                        text: errorMessage,
+                        text: backendMessage || 'Something went wrong. Please try again.',
                         confirmButtonText: 'OK'
                     });
                 }
