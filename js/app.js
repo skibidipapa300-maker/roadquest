@@ -473,7 +473,8 @@ $(document).ready(function() {
                 
                 const status = error.response?.status;
                 const backendMessage = error.response?.data?.message;
-                const errorMessage = backendMessage || error.message;
+                // Prefer backend validation/detail message; avoid showing raw status text
+                const errorMessage = backendMessage || '';
                 
                 // Check if it's a duplicate booking error (overlapping dates)
                 if (errorMessage.includes('already booked this car') || errorMessage.includes('overlapping dates')) {
@@ -487,7 +488,7 @@ $(document).ready(function() {
                     Swal.fire({
                         icon: 'error',
                         title: 'Booking Failed',
-                        text: backendMessage || 'Please check your booking details and try again.',
+                        text: backendMessage || 'Please check your pickup and return dates and try again.',
                         confirmButtonText: 'OK'
                     });
                 } else {
